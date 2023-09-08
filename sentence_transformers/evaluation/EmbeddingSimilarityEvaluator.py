@@ -63,7 +63,7 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
         return cls(sentences1, sentences2, scores, **kwargs)
 
 
-    def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
+    def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1, output_value: str = 'sentence_embedding') -> float:
         if epoch != -1:
             if steps == -1:
                 out_txt = " after epoch {}:".format(epoch)
@@ -73,10 +73,10 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
             out_txt = ":"
 
         logger.info("EmbeddingSimilarityEvaluator: Evaluating the model on " + self.name + " dataset" + out_txt)
-
-        embeddings1 = model.encode(self.sentences1, batch_size=self.batch_size, show_progress_bar=self.show_progress_bar, convert_to_numpy=True)
-        embeddings2 = model.encode(self.sentences2, batch_size=self.batch_size, show_progress_bar=self.show_progress_bar, convert_to_numpy=True)
+        embeddings1 = model.encode(self.sentences1, batch_size=self.batch_size, show_progress_bar=self.show_progress_bar, convert_to_numpy=True, output_value=output_value)
+        embeddings2 = model.encode(self.sentences2, batch_size=self.batch_size, show_progress_bar=self.show_progress_bar, convert_to_numpy=True, output_value=output_value)
         labels = self.scores
+        print(type(embeddings1[0]), type(embeddings2[0]))
 
         cosine_scores = 1 - (paired_cosine_distances(embeddings1, embeddings2))
         manhattan_distances = -paired_manhattan_distances(embeddings1, embeddings2)

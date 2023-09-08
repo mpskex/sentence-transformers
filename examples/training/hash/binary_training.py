@@ -15,11 +15,23 @@ from sentence_transformers import LoggingHandler, SentenceTransformer, util, Inp
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
 import logging
 from datetime import datetime
-import sys
 import os
 import gzip
 import csv
 import random
+from argparse import ArgumentParser
+
+
+p = ArgumentParser("Binary Training")
+p.add_argument('--lr', default=2e-5, type=float)
+p.add_argument('--epochs', '-e', default=1, type=int)
+p.add_argument('--weight-decay', '-wd', default=0.1, type=float)
+p.add_argument('--batch-size', '-b', default=128, type=int)
+p.add_argument('--out-dims', '-od', default=None, type=float)
+p.add_argument('--no-detach', '-ngd', action='store_true')
+p.add_argument('--model-name', '-m', default='distilroberta-base', type=str)
+
+args = p.parse_args()
 
 #### Just some code to print debug information to stdout
 logging.basicConfig(format='%(asctime)s - %(message)s',
@@ -28,19 +40,22 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
                     handlers=[LoggingHandler()])
 #### /print debug information to stdout
 
-model_name = sys.argv[1] if len(sys.argv) > 1 else 'distilroberta-base'
-train_batch_size = 64          #The larger you select this, the better the results (usually). But it requires more GPU memory
+model_name = args.model_name
+train_batch_size = args.batch_size          #The larger you select this, the better the results (usually). But it requires more GPU memory
 max_seq_length = 75
-num_epochs = 1
+num_epochs = args.epochs
 
 # Save path of the model
-model_save_path = 'output/training_nli_v2_'+model_name.replace("/", "-")+'-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
 
 # Here we define our SentenceTransformer model
 word_embedding_model = models.Transformer(model_name, max_seq_length=max_seq_length)
 pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension(), pooling_mode='mean')
-model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
+out_dims = args.out_dims if args.out_dims else  word_embedding_model.get_word_embedding_dimension() 
+hash_layer = models.HashLayer(word_embedding_model.get_word_embedding_dimension(), out_dims)
+model = SentenceTransformer(modules=[word_embedding_model, pooling_model, hash_layer])
+model_save_path = f'output/hash_b{args.batch_size}_lr{args.lr}_od{out_dims}_{"n" if args.no_detach else ""}gd'+\
+    model_name.replace("/", "-")+'-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
 #Check if dataset exsist. If not, download and extract  it
 nli_dataset_path = 'data/AllNLI.tsv.gz'
@@ -89,9 +104,7 @@ train_dataloader = datasets.NoDuplicatesDataLoader(train_samples, batch_size=tra
 
 
 # Our training loss
-train_loss = losses.MultipleNegativesRankingLoss(model)
-
-
+train_loss = losses.BinaryAlignmentLoss(model, detach=not args.no_detach)
 
 
 #Read STSbenchmark dataset and use it as development set
@@ -115,6 +128,8 @@ logging.info("Warmup-steps: {}".format(warmup_steps))
 model.fit(train_objectives=[(train_dataloader, train_loss)],
           evaluator=dev_evaluator,
           epochs=num_epochs,
+          optimizer_params={'lr': args.lr},
+          weight_decay=args.weight_decay,
           evaluation_steps=int(len(train_dataloader)*0.1),
           warmup_steps=warmup_steps,
           output_path=model_save_path,

@@ -138,7 +138,7 @@ class SentenceTransformer(nn.Sequential):
         if convert_to_tensor:
             convert_to_numpy = False
 
-        if output_value != 'sentence_embedding':
+        if output_value not in ['sentence_embedding', 'binary_embedding']:
             convert_to_tensor = False
             convert_to_numpy = False
 
@@ -182,7 +182,6 @@ class SentenceTransformer(nn.Sequential):
                     embeddings = embeddings.detach()
                     if normalize_embeddings:
                         embeddings = torch.nn.functional.normalize(embeddings, p=2, dim=1)
-
                     # fixes for #522 and #487 to avoid oom problems on gpu with large datasets
                     if convert_to_numpy:
                         embeddings = embeddings.cpu()
@@ -754,7 +753,7 @@ class SentenceTransformer(nn.Sequential):
 
 
 
-    def evaluate(self, evaluator: SentenceEvaluator, output_path: str = None):
+    def evaluate(self, evaluator: SentenceEvaluator, output_path: str = None, output_value='sentence_embedding'):
         """
         Evaluate the model
 
@@ -765,7 +764,7 @@ class SentenceTransformer(nn.Sequential):
         """
         if output_path is not None:
             os.makedirs(output_path, exist_ok=True)
-        return evaluator(self, output_path)
+        return evaluator(self, output_path, output_value=output_value)
 
     def _eval_during_training(self, evaluator, output_path, save_best_model, epoch, steps, callback):
         """Runs evaluation during the training"""

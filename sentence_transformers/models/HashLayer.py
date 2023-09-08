@@ -73,6 +73,7 @@ class HashLayer(nn.Module):
     def save(self, output_path):
         with open(os.path.join(output_path, 'config.json'), 'w') as fOut:
             json.dump(self.get_config_dict(), fOut, indent=2)
+        torch.save(self.state_dict(), os.path.join(output_path, 'pytorch_model.bin'))
 
     @staticmethod
     def load(input_path):

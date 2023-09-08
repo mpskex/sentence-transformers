@@ -39,7 +39,7 @@ class BinaryAlignmentLoss(nn.Module):
         train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=train_batch_size)
         train_loss = losses.BinaryAlignmentLoss(model=model)
     """
-    def __init__(self, model: SentenceTransformer, reconstruct_loss='mse', approx_penalty=0.1):
+    def __init__(self, model: SentenceTransformer, reconstruct_loss='mse', approx_penalty=0.1, detach=True):
         super(BinaryAlignmentLoss, self).__init__()
         assert reconstruct_loss in ["mse", "mae"]
         self.sentence_embedder = model
@@ -48,6 +48,7 @@ class BinaryAlignmentLoss(nn.Module):
         elif reconstruct_loss == "mae":
             self.reconstruct_loss = mae_loss
         self.approx_penalty = approx_penalty
+        self.detach = detach
 
     def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
         out = self.sentence_embedder(sentence_features[0])
@@ -56,7 +57,8 @@ class BinaryAlignmentLoss(nn.Module):
         orig = out['sentence_embedding']
         approx = out["binary_embedding_approx"]
         bin = out["binary_embedding"]
-        orig = orig.detach()
+        if self.detach:
+            orig = orig.detach()
         return self.batch_binary_alignment_loss(orig, approx, bin, labels)
 
     def batch_binary_alignment_loss(self, x: Tensor, b: Tensor, h: Tensor, labels: Tensor):
