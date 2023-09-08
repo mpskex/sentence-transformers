@@ -16,3 +16,6 @@ from .BatchHardTripletLoss import *
 from .BatchHardSoftMarginTripletLoss import *
 from .BatchSemiHardTripletLoss import *
 from .BatchAllTripletLoss import *
+
+# Binary losses
+from .BinaryAlignmentLoss import *
