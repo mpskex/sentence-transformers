@@ -59,8 +59,13 @@ class HashLayer(nn.Module):
         # get output
         h = input - mean
         y = StraightThroughEstimator.apply(h)
-        features.update({'binary_embedding_approx': h,
-                         'binary_embedding': y})
+        features.update({
+            # 
+            'sentence_embedding_approx': h,
+            # Overrides sentence embedding
+            'sentence_embedding': y,
+            # keeps the original one with alias for training
+            'sentence_embedding_': features['sentence_embedding']})
         return features
     
     def get_sentence_embedding_dimension(self) -> int:

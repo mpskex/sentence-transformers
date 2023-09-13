@@ -52,11 +52,11 @@ class BinaryAlignmentLoss(nn.Module):
 
     def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
         out = self.sentence_embedder(sentence_features[0])
-        assert "binary_embedding_approx" in out and "binary_embedding" in out, \
+        assert "sentence_embedding_approx" in out and "sentence_embedding_" in out, \
             "BinaryAlignmentLoss only accept output from `sentence_transformers.models.HashLayer`."
-        orig = out['sentence_embedding']
-        approx = out["binary_embedding_approx"]
-        bin = out["binary_embedding"]
+        orig = out['sentence_embedding_']
+        approx = out["sentence_embedding"]
+        bin = out["sentence_embedding_approx"]
         if self.detach:
             orig = orig.detach()
         return self.batch_binary_alignment_loss(orig, approx, bin, labels)
@@ -69,7 +69,10 @@ class BinaryAlignmentLoss(nn.Module):
         
         dist_x, dist_b = torch.triu(dist_x, diagonal=1), torch.triu(dist_b, diagonal=1)
         
-        loss_reconstruct = self.reconstruct_loss(dist_x, dist_b)
+        if self.detach:
+            dist_x = dist_x.detach()
+        
+        loss_reconstruct = self.reconstruct_loss(dist_b, dist_x.detach())
         loss_consist = torch.mean(torch.abs(torch.pow(torch.abs(h) - 1, 3)))
 
         return loss_reconstruct + self.approx_penalty * loss_consist
