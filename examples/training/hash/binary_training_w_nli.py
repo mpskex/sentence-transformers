@@ -22,7 +22,7 @@ import random
 from argparse import ArgumentParser
 
 
-p = ArgumentParser("Binary Training")
+p = ArgumentParser("Binary Training with NLI Targets")
 p.add_argument('--lr', default=2e-5, type=float)
 p.add_argument('--epochs', '-e', default=1, type=int)
 p.add_argument('--weight-decay', '-wd', default=0.1, type=float)
@@ -30,6 +30,7 @@ p.add_argument('--batch-size', '-b', default=128, type=int)
 p.add_argument('--out-dims', '-od', default=None, type=int)
 p.add_argument('--no-detach', '-ngd', action='store_true')
 p.add_argument('--model-name', '-m', default='distilroberta-base', type=str)
+p.add_argument('--freeze-backbone', action='store_true')
 
 args = p.parse_args()
 
@@ -54,7 +55,7 @@ pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension
 out_dims = args.out_dims if args.out_dims else  word_embedding_model.get_word_embedding_dimension() 
 hash_layer = models.HashLayer(word_embedding_model.get_word_embedding_dimension(), out_dims)
 model = SentenceTransformer(modules=[word_embedding_model, pooling_model, hash_layer])
-model_save_path = f'output/hash_b{args.batch_size}_lr{args.lr}_od{out_dims}_{"n" if args.no_detach else ""}gd'+\
+model_save_path = f'output/hash{"_freeze" if args.freeze_backbone else ""}_b{args.batch_size}_lr{args.lr}_od{out_dims}_{"n" if args.no_detach else ""}gd'+\
     model_name.replace("/", "-")+'-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
 #Check if dataset exsist. If not, download and extract  it
@@ -104,7 +105,7 @@ train_dataloader = datasets.NoDuplicatesDataLoader(train_samples, batch_size=tra
 
 
 # Our training loss BIN
-train_loss_bin = losses.BinaryAlignmentLoss(model, detach=not args.no_detach)
+train_loss_bin = losses.BinaryAlignmentLoss(model, grad_detach=not args.no_detach, freeze_backbone=args.freeze_backbone)
 # Our training loss NLI
 train_loss_nli = losses.MultipleNegativesRankingLoss(model)
 
