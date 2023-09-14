@@ -27,7 +27,7 @@ p.add_argument('--lr', default=2e-5, type=float)
 p.add_argument('--epochs', '-e', default=1, type=int)
 p.add_argument('--weight-decay', '-wd', default=0.1, type=float)
 p.add_argument('--batch-size', '-b', default=128, type=int)
-p.add_argument('--out-dims', '-od', default=None, type=float)
+p.add_argument('--out-dims', '-od', default=None, type=int)
 p.add_argument('--no-detach', '-ngd', action='store_true')
 p.add_argument('--model-name', '-m', default='distilroberta-base', type=str)
 

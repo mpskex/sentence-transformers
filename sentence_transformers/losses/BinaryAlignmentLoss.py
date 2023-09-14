@@ -55,8 +55,8 @@ class BinaryAlignmentLoss(nn.Module):
         assert "sentence_embedding_approx" in out and "sentence_embedding_" in out, \
             "BinaryAlignmentLoss only accept output from `sentence_transformers.models.HashLayer`."
         orig = out['sentence_embedding_']
-        approx = out["sentence_embedding"]
-        bin = out["sentence_embedding_approx"]
+        approx = out["sentence_embedding_approx"]
+        bin = out["sentence_embedding"]
         if self.detach:
             orig = orig.detach()
         return self.batch_binary_alignment_loss(orig, approx, bin, labels)
